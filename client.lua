@@ -8,7 +8,6 @@ local Seats    = (Config.Seats and #Config.Seats > 0) and Config.Seats or { Conf
 local addTramTarget, createEntities, deleteEntities
 local startLoops, boardTram, exitTram, updateSubscription, canExitNow
 
--- Synced clock (NTP-style) so every client agrees on cabin position
 local timeOffset = 0
 local function Now() return GetGameTimer() + timeOffset end
 
@@ -32,7 +31,6 @@ CreateThread(function()
     end
 end)
 
--- Track geometry
 local Tracks = {}
 do
     for index, nodes in pairs(Config.Tracks) do
@@ -92,7 +90,6 @@ local function getCarState(trackIndex, now)
     end
 end
 
--- Runtime state
 local active      = false
 local zoneCount   = 0
 local riding      = false
@@ -108,7 +105,6 @@ local function seatOffsetForSpot(spot)
     return s.x, s.y, s.z
 end
 
--- Seats claimed by other riders on this car, plus the rider count
 local function takenSpots(idx)
     local taken, count = {}, 0
     local myId = PlayerId()
@@ -145,7 +141,6 @@ local function getAnchor(idx)
     return nil
 end
 
--- Audio
 local function requestAudio()
     RequestScriptAudioBank('CABLE_CAR', false, -1)
     RequestScriptAudioBank('CABLE_CAR_SOUNDS', false, -1)
@@ -181,7 +176,6 @@ local function updateCarSound(c, region, traveling)
     end
 end
 
--- Doors
 local function setDoorPos(c, doorPos)
     local e, d = c.entity, c.doors
     if not (e and DoesEntityExist(e)) then return end
@@ -194,7 +188,6 @@ local function setDoorPos(c, doorPos)
     if d.RR ~= 0 then AttachEntityToEntity(d.RR, e, 0, 0.0, -doorPos, 0.0, 0.0, 0.0, 180.0, false, false, true, false, 2, true) end
 end
 
--- Interaction
 addTramTarget = function(c)
     c.targetId = ('tramway:%s'):format(c.trackIndex)
     Interaction.Add(c.entity, {
@@ -227,7 +220,6 @@ addTramTarget = function(c)
     })
 end
 
--- Create / delete the local cabins
 createEntities = function()
     for _, h in ipairs({ Models.car, Models.doorL, Models.doorR }) do RequestModel(h) end
     local started = GetGameTimer()
@@ -283,7 +275,6 @@ deleteEntities = function()
     cars = {}
 end
 
--- Per-frame drive loop
 startLoops = function()
     gen = gen + 1
     local myGen = gen
@@ -323,7 +314,6 @@ startLoops = function()
                         end
                     end
 
-                    -- follow the anchor while the car has riders, deterministic otherwise
                     if ridersByCar[idx] and anchor then
                         local ap = GetEntityCoords(anchor)
                         SetEntityCoords(c.entity, ap.x, ap.y, ap.z, false, false, false, false)
@@ -353,7 +343,6 @@ startLoops = function()
         end
     end)
 
-    -- Which cars currently have riders (drives cabin-follow)
     CreateThread(function()
         while active and myGen == gen do
             local riders = {}
@@ -386,7 +375,6 @@ updateSubscription = function()
     end
 end
 
--- Boarding / exiting
 boardTram = function(c)
     if riding or boarding or not (c and c.entity and DoesEntityExist(c.entity)) then return end
     boarding = true
@@ -423,7 +411,6 @@ boardTram = function(c)
         SetEntityVisible(anchor, false, false)
         SetEntityCollision(anchor, false, false)
 
-        -- claim a free seat; bail out if the car filled up while we waited
         seatedSpot = pickFreeSpot(idx)
         if not seatedSpot then
             boarding = false
@@ -435,7 +422,6 @@ boardTram = function(c)
         ridersByCar[idx] = true
         LocalPlayer.state:set('tramSeat', seatedSpot, true)
 
-        -- attach our own ped to the networked anchor (replicates to all clients)
         local x, y, z = seatOffsetForSpot(seatedSpot)
         AttachEntityToEntity(ped, anchor, -1, x, y, z, 0.0, 0.0, 0.0,
             false, false, false, true, 2, true)
@@ -530,7 +516,6 @@ if Config.Debug then
     end, false)
 end
 
--- Logout-while-riding rescue: set the player down at a station on next spawn
 local checkedDangle = false
 local function checkDangle()
     if checkedDangle then return end
@@ -539,7 +524,6 @@ local function checkDangle()
 end
 RegisterNetEvent('QBX:Client:OnPlayerLoaded',    checkDangle)
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', checkDangle)
--- NOTE: not hooking 'playerSpawned' (it also fires on death/respawn)
 
 local function resetRiding()
     if riding then DetachEntity(PlayerPedId(), true, true) end
@@ -575,7 +559,6 @@ RegisterNetEvent('tramway:goToStation', function()
     end)
 end)
 
--- Zone (drives create/teardown of local cabins)
 CreateThread(function()
     lib.zones.poly({
         points    = Config.Zone.points,
@@ -590,7 +573,6 @@ CreateThread(function()
     })
 end)
 
--- Map blips
 CreateThread(function()
     if not (Config.Blip and Config.Blip.enabled) then return end
     for _, c in ipairs(Config.Blip.coords) do

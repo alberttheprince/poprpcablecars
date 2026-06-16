@@ -2,7 +2,7 @@ fx_version 'cerulean'
 game 'gta5'
 lua54 'yes'
 
-author 'popcornrp & glitchdetector'
+author 'Popcorn Roleplay & glitchdetector'
 description 'Synced Aerial Tramway for FiveM'
 version '1.0.0'
 
@@ -15,6 +15,3 @@ client_scripts {
 }
 
 server_script 'server.lua'
-
-dependency 'ox_lib'
--- ox_target only required if Config.Interaction == 'ox_target' (the default)

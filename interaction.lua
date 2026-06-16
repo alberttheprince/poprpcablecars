@@ -1,11 +1,107 @@
--- Interaction adapters (cabins are local entities, so use the addLocalEntity
--- family). To use your own system: copy 'custom', wire up your exports, and
--- set Config.Interaction = 'custom'.
-
 local OPTION_NAMES = { 'tramway_board', 'tramway_exit' }
 local Adapters = {}
 
--- ox_target (default)
+Adapters.ox_textui = (function()
+    local registry = {}
+    local started  = false
+    local activeEntity, activeOption
+    local currentText
+
+    local cfg      = Config.TextUI or {}
+    local keyLabel = cfg.keyLabel or cfg.key or 'E'
+    local position = cfg.position or 'top-center'
+
+    local function uiOptions(opt)
+        return {
+            position = position,
+            icon     = opt.icon or cfg.icon,
+            style    = cfg.style,
+        }
+    end
+
+    local function hide()
+        if currentText then
+            lib.hideTextUI()
+            currentText  = nil
+            activeEntity = nil
+            activeOption = nil
+        end
+    end
+
+    local function startDriver()
+        if started then return end
+        started = true
+
+        lib.addKeybind({
+            name        = 'tramway_interact',
+            description = 'Interact with the tramway',
+            defaultKey  = cfg.key or 'E',
+            onPressed   = function()
+                if activeOption and activeOption.onSelect then
+                    activeOption.onSelect(activeEntity)
+                end
+            end,
+        })
+
+        CreateThread(function()
+            while true do
+                local sleep = 500
+                local nextEnt, nextOpt, bestDist = nil, nil, math.huge
+
+                if next(registry) then
+                    local pcoords = GetEntityCoords(PlayerPedId())
+                    for entity, reg in pairs(registry) do
+                        if entity and DoesEntityExist(entity) then
+                            local p = reg.offset
+                                and GetOffsetFromEntityInWorldCoords(entity, reg.offset.x, reg.offset.y, reg.offset.z)
+                                or  GetEntityCoords(entity)
+                            local d = #(pcoords - p)
+                            if d <= reg.distance and d < bestDist then
+                                for _, o in ipairs(reg.options) do
+                                    if not o.canInteract or o.canInteract(entity) then
+                                        nextEnt, nextOpt, bestDist = entity, o, d
+                                        break
+                                    end
+                                end
+                            end
+                        end
+                    end
+                end
+
+                if nextOpt then
+                    sleep        = 200
+                    activeEntity = nextEnt
+                    activeOption = nextOpt
+                    local text = ('[%s] - %s'):format(keyLabel, nextOpt.label)
+                    if text ~= currentText then
+                        currentText = text
+                        lib.showTextUI(text, uiOptions(nextOpt))
+                    end
+                else
+                    hide()
+                end
+
+                Wait(sleep)
+            end
+        end)
+    end
+
+    return {
+        Add = function(entity, data)
+            registry[entity] = {
+                distance = data.distance or 2.5,
+                offset   = data.offset,
+                options  = data.options,
+            }
+            startDriver()
+        end,
+        Remove = function(entity, _id)
+            registry[entity] = nil
+            if entity == activeEntity then hide() end
+        end,
+    }
+end)()
+
 Adapters.ox_target = {
     Add = function(entity, data)
         local options = {}
@@ -26,36 +122,9 @@ Adapters.ox_target = {
     end,
 }
 
--- sleepless_interact
-Adapters.sleepless = {
-    Add = function(entity, data)
-        local options = {}
-        for i, o in ipairs(data.options) do
-            options[i] = {
-                label       = o.label,
-                icon        = o.icon,
-                canInteract = o.canInteract,
-                onSelect    = o.onSelect,
-            }
-        end
-        exports.sleepless_interact:addLocalEntity({
-            id             = data.id,
-            entity         = entity,
-            offset         = data.offset,
-            options        = options,
-            renderDistance = (data.distance or 2.5) + 3.0,
-            activeDistance = data.distance or 2.5,
-        })
-    end,
-    Remove = function(entity, _id)
-        exports.sleepless_interact:removeLocalEntity(entity)
-    end,
-}
-
--- custom (fill in your own)
 Adapters.custom = {
     Add = function(entity, data) end,
     Remove = function(entity, id) end,
 }
 
-Interaction = Adapters[Config.Interaction] or Adapters.ox_target
+Interaction = Adapters[Config.Interaction] or Adapters.ox_textui

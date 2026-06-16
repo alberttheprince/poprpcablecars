@@ -6,8 +6,20 @@ Config.Debug = false
 -- Play the cable-car audio
 Config.Sounds = true
 
--- Board interaction backend (see interaction.lua): 'ox_target', 'sleepless', 'custom'
-Config.Interaction = 'sleepless'
+-- Options: 'ox_textui', 'ox_target', 'custom'
+Config.Interaction = 'ox_textui'
+
+Config.TextUI = {
+    key      = 'E',            -- ox_lib keybind default (rebindable in settings)
+    keyLabel = 'E',            -- shown in the prompt, e.g. "[E] - Board the tramway"
+    position = 'center',
+    icon     = 'cable-car',
+    style = {
+        borderRadius    = 0,
+        backgroundColor = '#48BB78',
+        color           = 'white',
+    },
+}
 
 -- Key to step out while riding (ox_lib keybind)
 Config.ExitKey = 'X'
@@ -23,7 +35,7 @@ Config.Timings = {
 Config.SagMinLength = 30.0
 Config.SagAmount    = 0.25
 
--- Zone the trams come alive in (4-corner polygon stretched up by thickness)
+-- Borders of zone where users  will start to see the cable cars
 Config.Zone = {
     points = {
         vec3(-846.6,  5485.65, 450.0),
