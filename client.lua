@@ -45,8 +45,7 @@ do
     end
 end
 
-local function clamp01(v) if v < 0.0 then return 0.0 elseif v > 1.0 then return 1.0 end return v end
-local function smoothstep(t) t = clamp01(t) return t * t * (3.0 - 2.0 * t) end
+local function smoothstep(t) t = lib.math.clamp(t, 0.0, 1.0) return t * t * (3.0 - 2.0 * t) end
 
 local function posAtArc(track, s)
     local nodes = track.nodes
@@ -70,7 +69,7 @@ local function posAtArc(track, s)
 end
 
 local function doorOpenAt(tIn, tOut)
-    return math.min(clamp01(tIn / T.doorTransition), clamp01(tOut / T.doorTransition))
+    return math.min(lib.math.clamp(tIn / T.doorTransition, 0.0, 1.0), lib.math.clamp(tOut / T.doorTransition, 0.0, 1.0))
 end
 
 local function getCarState(trackIndex, now)
@@ -290,7 +289,7 @@ startLoops = function()
                         local ped = PlayerPedId()
                         if IsEntityDead(ped) then
                             exitTram(c, true)
-                        elseif not IsEntityAttachedToEntity(ped, c.entity) then
+                        else
                             local x, y, z = seatOffsetForSpot(seatedSpot)
                             AttachEntityToEntity(ped, c.entity, -1, x, y, z, 0.0, 0.0, 0.0,
                                 false, false, false, false, 2, true)
@@ -424,15 +423,6 @@ if Config.Debug then
         end)
     end, false)
 end
-
-local checkedDangle = false
-local function checkDangle()
-    if checkedDangle then return end
-    checkedDangle = true
-    TriggerServerEvent('tramway:checkDangle')
-end
-RegisterNetEvent('QBX:Client:OnPlayerLoaded',    checkDangle)
-RegisterNetEvent('QBCore:Client:OnPlayerLoaded', checkDangle)
 
 local function resetRiding()
     if riding then DetachEntity(PlayerPedId(), true, true) end
