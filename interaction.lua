@@ -1,4 +1,4 @@
-local OPTION_NAMES = { 'tramway_board', 'tramway_exit' }
+local OPTION_NAMES = { 'cablecar_board', 'cablecar_exit' }
 local Adapters = {}
 
 Adapters.ox_textui = (function()
@@ -33,8 +33,8 @@ Adapters.ox_textui = (function()
         started = true
 
         lib.addKeybind({
-            name        = 'tramway_interact',
-            description = 'Interact with the tramway',
+            name        = 'cablecar_interact',
+            description = 'Interact with the cable car',
             defaultKey  = cfg.key or 'E',
             onPressed   = function()
                 if activeOption and activeOption.onSelect then

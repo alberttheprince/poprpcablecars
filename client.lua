@@ -12,7 +12,7 @@ local timeOffset = 0
 local function Now() return GetGameTimer() + timeOffset end
 
 local bestRtt = math.huge
-RegisterNetEvent('tramway:syncRes', function(t0, serverNow)
+RegisterNetEvent('cablecar:syncRes', function(t0, serverNow)
     local t1  = GetGameTimer()
     local rtt = t1 - t0
     if rtt <= bestRtt then
@@ -22,7 +22,7 @@ RegisterNetEvent('tramway:syncRes', function(t0, serverNow)
 end)
 
 CreateThread(function()
-    local function ask() TriggerServerEvent('tramway:syncReq', GetGameTimer()) end
+    local function ask() TriggerServerEvent('cablecar:syncReq', GetGameTimer()) end
     for _ = 1, 8 do ask(); Wait(250) end
     while true do
         Wait(30000)
@@ -111,9 +111,9 @@ local function takenSpots(idx)
     for _, pid in ipairs(GetActivePlayers()) do
         if pid ~= myId then
             local st = Player(GetPlayerServerId(pid)).state
-            if st.tramCar == idx then
+            if st.cablecarCar == idx then
                 count = count + 1
-                if st.tramSeat then taken[st.tramSeat] = true end
+                if st.cablecarSeat then taken[st.cablecarSeat] = true end
             end
         end
     end
@@ -134,7 +134,7 @@ local function pickFreeSpot(idx)
 end
 
 local function getAnchor(idx)
-    local netId = GlobalState['tramAnchor:' .. idx]
+    local netId = GlobalState['cablecarAnchor:' .. idx]
     if not netId or not NetworkDoesNetworkIdExist(netId) then return nil end
     local e = NetworkGetEntityFromNetworkId(netId)
     if e ~= 0 and DoesEntityExist(e) then return e end
@@ -189,16 +189,16 @@ local function setDoorPos(c, doorPos)
 end
 
 addTramTarget = function(c)
-    c.targetId = ('tramway:%s'):format(c.trackIndex)
+    c.targetId = ('cablecar:%s'):format(c.trackIndex)
     Interaction.Add(c.entity, {
         id       = c.targetId,
         distance = 3.0,
         offset   = Config.InteractOffset,
         options  = {
             {
-                name        = 'tramway_board',
+                name        = 'cablecar_board',
                 icon        = 'fa-solid fa-cable-car',
-                label       = 'Board the tramway',
+                label       = 'Board the cable car',
                 canInteract = function()
                     if riding or boarding then return false end
                     if carIsFull(c.trackIndex) then return false end
@@ -207,9 +207,9 @@ addTramTarget = function(c)
                 onSelect    = function() boardTram(c) end,
             },
             {
-                name        = 'tramway_exit',
+                name        = 'cablecar_exit',
                 icon        = 'fa-solid fa-door-open',
-                label       = 'Exit the tramway',
+                label       = 'Exit the cable car',
                 canInteract = function()
                     if not riding or seatedCar ~= c.trackIndex then return false end
                     return canExitNow(c)
@@ -350,7 +350,7 @@ startLoops = function()
             local myId = PlayerId()
             for _, pid in ipairs(GetActivePlayers()) do
                 if pid ~= myId then
-                    local idx = Player(GetPlayerServerId(pid)).state.tramCar
+                    local idx = Player(GetPlayerServerId(pid)).state.cablecarCar
                     if idx ~= nil then riders[idx] = true end
                 end
             end
@@ -383,7 +383,7 @@ boardTram = function(c)
         local ped = PlayerPedId()
 
         local cabinPos = GetEntityCoords(c.entity)
-        TriggerServerEvent('tramway:prepareAnchor', idx, cabinPos)
+        TriggerServerEvent('cablecar:prepareAnchor', idx, cabinPos)
 
         local ok, anchor = pcall(function()
             return lib.waitFor(function()
@@ -420,14 +420,14 @@ boardTram = function(c)
 
         riding = true; seatedCar = idx; boarding = false
         ridersByCar[idx] = true
-        LocalPlayer.state:set('tramSeat', seatedSpot, true)
+        LocalPlayer.state:set('cablecarSeat', seatedSpot, true)
 
         local x, y, z = seatOffsetForSpot(seatedSpot)
         AttachEntityToEntity(ped, anchor, -1, x, y, z, 0.0, 0.0, 0.0,
             false, false, false, true, 2, true)
 
-        LocalPlayer.state:set('tramCar', idx, true)
-        TriggerServerEvent('tramway:riding', true)
+        LocalPlayer.state:set('cablecarCar', idx, true)
+        TriggerServerEvent('cablecar:riding', true)
         updateSubscription()
     end)
 end
@@ -446,9 +446,9 @@ exitTram = function(c, force)
     local ped = PlayerPedId()
     riding = false; seatedCar = nil; seatedSpot = nil
     DetachEntity(ped, true, true)
-    LocalPlayer.state:set('tramCar', nil, true)
-    LocalPlayer.state:set('tramSeat', nil, true)
-    TriggerServerEvent('tramway:riding', false)
+    LocalPlayer.state:set('cablecarCar', nil, true)
+    LocalPlayer.state:set('cablecarSeat', nil, true)
+    TriggerServerEvent('cablecar:riding', false)
     if c and c.entity and DoesEntityExist(c.entity) then
         local p = GetOffsetFromEntityInWorldCoords(c.entity, 3.5, 0.0, -5.0)
         SetEntityCoords(ped, p.x, p.y, p.z, false, false, false, true)
@@ -457,24 +457,24 @@ exitTram = function(c, force)
 end
 
 lib.addKeybind({
-    name = 'tramway_exit', description = 'Exit the tramway', defaultKey = Config.ExitKey,
+    name = 'cablecar_exit', description = 'Exit the cable car', defaultKey = Config.ExitKey,
     onPressed = function()
         if not riding then return end
         exitTram(seatedCar and cars[seatedCar] or nil, false)
     end,
 })
 
--- /tramseattest (debug only): walk your ped through every Config.Seats spot
+-- /cablecarseattest (debug only): walk your ped through every Config.Seats spot
 if Config.Debug then
     local testing = false
-    RegisterCommand('tramseattest', function()
+    RegisterCommand('cablecarseattest', function()
         if testing then return end
         if riding or boarding then
             lib.notify({ description = 'Finish your current ride first.', type = 'error' })
             return
         end
         if not active or next(cars) == nil then
-            lib.notify({ description = 'Get near the tramway first (so the cabins spawn).', type = 'error' })
+            lib.notify({ description = 'Get near the cable car first (so the cabins spawn).', type = 'error' })
             return
         end
 
@@ -520,7 +520,7 @@ local checkedDangle = false
 local function checkDangle()
     if checkedDangle then return end
     checkedDangle = true
-    TriggerServerEvent('tramway:checkDangle')
+    TriggerServerEvent('cablecar:checkDangle')
 end
 RegisterNetEvent('QBX:Client:OnPlayerLoaded',    checkDangle)
 RegisterNetEvent('QBCore:Client:OnPlayerLoaded', checkDangle)
@@ -528,13 +528,13 @@ RegisterNetEvent('QBCore:Client:OnPlayerLoaded', checkDangle)
 local function resetRiding()
     if riding then DetachEntity(PlayerPedId(), true, true) end
     riding = false; seatedCar = nil; seatedSpot = nil
-    LocalPlayer.state:set('tramCar', nil, true)
-    LocalPlayer.state:set('tramSeat', nil, true)
+    LocalPlayer.state:set('cablecarCar', nil, true)
+    LocalPlayer.state:set('cablecarSeat', nil, true)
 end
 RegisterNetEvent('QBX:Client:OnPlayerUnload',    resetRiding)
 RegisterNetEvent('QBCore:Client:OnPlayerUnload', resetRiding)
 
-RegisterNetEvent('tramway:goToStation', function()
+RegisterNetEvent('cablecar:goToStation', function()
     CreateThread(function()
         local ped = PlayerPedId()
 
@@ -590,8 +590,8 @@ end)
 AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
     if riding then DetachEntity(PlayerPedId(), true, true) end
-    LocalPlayer.state:set('tramCar', nil, true)
-    LocalPlayer.state:set('tramSeat', nil, true)
+    LocalPlayer.state:set('cablecarCar', nil, true)
+    LocalPlayer.state:set('cablecarSeat', nil, true)
     deleteEntities()
     lib.hideTextUI()
 end)

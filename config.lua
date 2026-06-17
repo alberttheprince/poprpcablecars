@@ -11,7 +11,7 @@ Config.Interaction = 'ox_textui'
 
 Config.TextUI = {
     key      = 'E',            -- ox_lib keybind default (rebindable in settings)
-    keyLabel = 'E',            -- shown in the prompt, e.g. "[E] - Board the tramway"
+    keyLabel = 'E',            -- shown in the prompt, e.g. "[E] - Board the cable car"
     position = 'center',
     icon     = 'cable-car',
     style = {
@@ -52,7 +52,7 @@ Config.Blip = {
     sprite  = 36,
     color   = 2,
     scale   = 0.8,
-    label   = 'Pala Springs Tramway',
+    label   = 'Pala Springs Cable Car',
     coords  = {
         vec3(-740.911, 5599.341, 47.25),  -- bottom station
         vec3(446.291,  5566.377, 786.75), -- top station
@@ -69,7 +69,7 @@ Config.Models = {
 Config.SeatOffset = vec3(0.0, 0.0, -5.3)
 
 -- Seat spots (offsets from cabin origin). Entry count = per-car capacity;
--- riders claim the first free spot. Run /tramseattest (Debug) to preview.
+-- riders claim the first free spot. Run /cablecarseattest (Debug) to preview.
 Config.Seats = {
     vec3(-0.5,  0.9, -5.3),  -- front-left
     vec3( 0.5,  0.9, -5.3),  -- front-right

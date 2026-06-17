@@ -14,15 +14,15 @@ CreateThread(function()
         if DoesEntityExist(obj) then
             FreezeEntityPosition(obj, true)
             anchors[idx] = obj
-            GlobalState['tramAnchor:' .. idx] = NetworkGetNetworkIdFromEntity(obj)
+            GlobalState['cablecarAnchor:' .. idx] = NetworkGetNetworkIdFromEntity(obj)
         else
-            print(('^1[tramway] failed to create anchor for car %s^7'):format(idx))
+            print(('^1[cablecar] failed to create anchor for car %s^7'):format(idx))
         end
     end
 end)
 
 -- Move a car's anchor to a boarding rider's cabin so it streams in next to them
-RegisterNetEvent('tramway:prepareAnchor', function(idx, pos)
+RegisterNetEvent('cablecar:prepareAnchor', function(idx, pos)
     if type(pos) ~= 'vector3' then return end
     local obj = anchors[idx]
     if obj and DoesEntityExist(obj) then
@@ -34,13 +34,13 @@ AddEventHandler('onResourceStop', function(res)
     if res ~= GetCurrentResourceName() then return end
     for idx, obj in pairs(anchors) do
         if DoesEntityExist(obj) then DeleteEntity(obj) end
-        GlobalState['tramAnchor:' .. idx] = nil
+        GlobalState['cablecarAnchor:' .. idx] = nil
     end
 end)
 
 -- Shared clock: echo the client's send-time back with our timer for NTP sync
-RegisterNetEvent('tramway:syncReq', function(t0)
-    TriggerClientEvent('tramway:syncRes', source, t0, GetGameTimer())
+RegisterNetEvent('cablecar:syncReq', function(t0)
+    TriggerClientEvent('cablecar:syncRes', source, t0, GetGameTimer())
 end)
 
 -- Logout-while-riding rescue
@@ -48,10 +48,10 @@ local function licenseOf(src)
     return GetPlayerIdentifierByType(src, 'license') or ('src:' .. src)
 end
 local function dangleKey(src)
-    return 'tramway_dangle_' .. (licenseOf(src):gsub('[^%w]', '_'))
+    return 'cablecar_dangle_' .. (licenseOf(src):gsub('[^%w]', '_'))
 end
 
-RegisterNetEvent('tramway:riding', function(state)
+RegisterNetEvent('cablecar:riding', function(state)
     if state then riding[source] = true else riding[source] = nil end
 end)
 
@@ -63,12 +63,12 @@ AddEventHandler('playerDropped', function()
     end
 end)
 
-RegisterNetEvent('tramway:checkDangle', function()
+RegisterNetEvent('cablecar:checkDangle', function()
     local src = source
     local key = dangleKey(src)
     if GetResourceKvpInt(key) == 1 then
         DeleteResourceKvp(key)
-        TriggerClientEvent('tramway:goToStation', src)
+        TriggerClientEvent('cablecar:goToStation', src)
     end
 end)
 

@@ -3,7 +3,7 @@ game 'gta5'
 lua54 'yes'
 
 author 'Popcorn Roleplay & glitchdetector'
-description 'Synced Aerial Tramway for FiveM'
+description 'Synced Aerial Cable Car for FiveM'
 version '1.0.0'
 
 shared_script '@ox_lib/init.lua'
